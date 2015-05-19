@@ -1,0 +1,396 @@
+.module funciones
+
+fin     	.equ 	0xFF01
+teclado		.equ	0xFF02
+pantalla 	.equ 	0xFF00
+pilaU		.equ	0xE000
+pilaS		.equ	0xF000         			
+
+;FUNCIONES:
+.globl mostrar_tablero
+.globl limpia_tablero
+.globl mostrar_marcador
+.globl leer_coordenada
+.globl comprueba_tresenraya
+.globl elegir_ficha 
+.globl imprime_cadena
+
+;CADENAS GLOBALES
+
+
+.globl logo
+.globl menu
+.globl tablero
+.globl cadena_error
+.globl cadena_eligeficha
+.globl cadena_1jugador
+.globl cadena_2jugadores
+.globl cadena_jugador1
+.globl cadena_jugador2
+.globl cadena_turno_jugador1
+.globl cadena_turno_jugador2
+.globl cadena_instrucciones
+.globl cadena_salir
+.globl cadena_ic
+.globl cadena_fila
+.globl cadena_columna
+.globl cadena_coordenada_ocupada
+.globl cadena_victoria_jugador1
+.globl cadena_victoria_jugador2
+.globl cadena_marcador
+.globl cadena_empate
+.globl cadena_dificultad
+.globl cadena_turno_maquina       							
+.globl posicion
+.globl final
+		
+
+;VARIABLES GLOBALES
+
+.globl jugador1
+.globl jugador2
+.globl columna
+.globl semilla
+.globl generador_semilla
+.globl indice
+.globl asignarturno
+.globl incognita 		
+.globl victorias_jugador1
+.globl victorias_jugador2
+.globl victoria		
+.globl tiradas	
+.globl maquina
+
+
+;Limiar el tablero:
+limpia_tablero:
+	pshu a ;metemos a en la pila
+	clrb 	;limpiamos b
+	stb maquina ;limpiamos la variable maquina
+	stb tiradas ;limpiamos la variable tiradas
+	ldy #posicion	;cargamos en y la primera posicion del vector de punteros
+	lda #'?	;cargamos el caracter que nos indica posicion vacia
+
+guarda:
+	sta [,y++] ;de la misma forma que imrime_cadena, recorremos el vector
+	cmpy #final+2	;comprobamos que no hemos llegado al fina+2 puesto que usamos postincremento
+	beq no_guardar	;de ser asi nos salimos
+	bra guarda	;de cualquier otra forma seguimos limpiando el tablero
+
+no_guardar:
+	pulu a
+	rts
+	
+;Muestra el marcador
+mostrar_marcador:
+	pshu a
+	ldx #cadena_marcador
+	jsr imprime_cadena       ;muestra por pantalla la cadena_marcador
+	ldx #cadena_jugador1
+	jsr imprime_cadena	;muestra por pantalla la cadena_jugador1
+	lda victorias_jugador1	;esta variable contiene las victorias de jugador 1
+	sta pantalla		;muestra el valor de a (variable victorias_jugador1) por pantalla
+	ldx #cadena_jugador2	
+	jsr imprime_cadena	;muestra por pantalla la cadena_jugador2
+	lda victorias_jugador2	;esta variable contiene las victorias del jugador 2
+	sta pantalla		;muestra el valor de a (variable victorias_jugador2) por pantalla
+	pulu a
+	rts
+	
+
+;Mostrar el tablero
+mostrar_tablero:
+	pshu a
+	ldx #tablero
+	jsr imprime_cadena
+	pulu a
+	rts
+
+;Leer coordenada
+leer_coordenada:
+
+
+	;subrutina que nos pide las coordenadas por panalla e introduce la ficha en dichas coordenadas
+	
+	pshu a
+	ldb #0
+	stb indice      ;ponemos la variable indice a 0
+	ldx #cadena_ic
+	jsr imprime_cadena
+
+introduce_fila:
+	ldx #cadena_fila
+	jsr imprime_cadena  ;mostramos por pantalla la cadena que nos pide que introduzcamos la fila
+	lda teclado         ;cargamos en a un valor entre 1 y 3 desde teclado
+	cmpa #'1
+	blo introduce_fila   ;si es menor que 1 nos vuelve a pedir por pantalla que untroduzcamos la fila
+	cmpa #'3
+	bhi introduce_fila   ;si es mayor que 3 nos vuelve a pedir por pantalla que untroduzcamos la fila
+	suba #49 ;Le restamos el codigo ascii del 0 y uno mas puesto que el vector empieza en el elemento 0
+
+introduce_columna:
+	ldx #cadena_columna
+	jsr imprime_cadena	;mostramos por pantalla la cadena que nos pide que introduzcamos la columna
+	ldb teclado		;cargamos en a un valor entre 1 y 3 desde teclado
+	cmpb #'1
+	blo introduce_columna	;si es menor que 1 nos vuelve a pedir por pantalla que untroduzcamos la columna
+	cmpb #'3
+	bhi introduce_columna	;si es mayor que 3 nos vuelve a pedir por pantalla que untroduzcamos la columna
+	subb #49		;Le restamos el codigo ascii del 0 y uno mas puesto que el vector empieza en el elemento 0
+	stb columna		;guardamos en la variable columna el valor de b que hemos introducido por teclado
+	ldb #3			;multiplicamos a por el numero de elementos de cada fila
+	mul			;multiplicamos...
+	addb columna		;sumamos las columnas menos uno a las filas para obtener el indice lineal de la posicion
+	lda #2			;cargamos el 2 puesto que las posiciones se incrementan de 2 en 2
+	mul			;hacemos la multiplicacion
+	stb indice		;guardamos el indice que hemos calculado
+	lda [b,y]		;cargamos la posicion solicitada
+	cmpa #'?    		;comprobamos que esta vacia
+	beq guardar_ficha  	 ;si es igual al simbolo ascii de la interrogacion nos vamos a la etiqueta guardar_ficha
+	bra coordenada_ocupada	 ;si no es igual significa que dicha cordenada esta ocupada por lo que salta a la 
+				 ;etiqueta coordenada_ocupada
+
+guardar_ficha:
+	lda asignarturno     ;carga en a la variable asignarturno y compara su valor con 0 o 1 para saber cual de los dos  
+	cmpa #0		     ;jugadores esta introduciendo la ficha en el tablero y poner la ficha correspondiente a ese jugador
+	beq guarda_ficha_j1     ;si es igual a 0 va a la etiqueta guarda_ficha_j1
+	cmpa #1
+	beq guarda_ficha_j2	;si es igual a 1 va a la etiqueta guarda_ficha_j2
+
+guarda_ficha_j1:	
+	lda jugador1		;carga en a la variable jugador1 que contine el codigo ascii de la ficha qu le correspnde  ese jugador
+	ldb indice		;el indice indica enque posicion del tablero tienes que guardar desde el vector de punteros
+	sta [b,y]
+	jsr mostrar_tablero    ;llamamos a la subrutina mostrar_tablero para que nos muestre el tablero con la ficha introducida.
+	pulu a
+	rts
+
+guarda_ficha_j2:
+	lda jugador2		;carga en a la variable jugador2 que contine el codigo ascii de la ficha qu le correspnde  ese jugador
+	ldb indice   		;el indice indica enque posicion del tablero tienes que guardar desde el vector de punteros
+	sta [b,y]		;almacena la ficha
+	jsr mostrar_tablero	;llamamos a la subrutina mostrar_tablero para que nos muestre el tablero con la ficha introducida.
+	pulu a
+	rts
+
+coordenada_ocupada:
+	ldx #cadena_coordenada_ocupada
+	jsr imprime_cadena    ;Muestra en pantalla la cadena_coordenada_ocupada y salta a leer_coordenada, 
+			      ;para pedir las coordenadas de nuevo.
+	lbra leer_coordenada
+
+
+
+
+;Comprobar tres en raya
+comprueba_tresenraya:
+	clrb  		;limpiamos b
+comprueba_vertical:
+	lda [b,y]	;cargamos el primer elemento de la columna
+	sta incognita	;lo guardamos en incognita para buscar tres elementos iguales
+	addb #6		;le sumamos 6 para seguir en la siguiente po
+	lda [b,y]	;seguimos con el siguiente elemento de la columna
+	cmpa incognita	;comparamos
+	bne siguiente_columna	;y si no son iguales saltamos a la siguiente columna
+	addb #6
+	lda [b,y]
+	cmpa incognita
+	beq tresencolumna
+	
+
+siguiente_columna:
+	subb #6 ;puesto que aqui podemos llegar desde el final o la mitad de una columna, restamos hasta estar en el primer elemento
+	cmpb #6	;comprobamos que estamos al inicio de la fila, de no ser asi volvemos a restar
+	bhs siguiente_columna	;si es mayo o igual vuelve a restar para llegar al inicio de la columna
+	cmpb #4	;si hemos comprobado la ultima columna seguimos con las diagonales
+	bhs diagonal ;vamonos a las diagolales!	
+	addb #2	; si no seguimos por la siguiente columna añadiendo 2 al inidice
+	bra comprueba_vertical ;volvemos para comprobar la siguiente columna
+
+tresencolumna:
+	lda incognita ;si hemos encontrado tres elementos iguales en una columna, 
+			;tenemos que aseurarnos de que no son espacios en blanco
+	cmpa #'?	;comparamos con nuestro caracter "vacio"
+	beq siguiente_columna ;si eran caracteres vacios comprobamos la siguiente columna
+	bra comprobaciones ;si eran fichas de jugadores nos vamos a hacer las comprobaciones pertinentes para declara: TRES EN RAYA!!!
+
+diagonal:
+	lda [,y]	;leemos el primer elemento de esta diagona
+	sta incognita	;lo guardamos
+	lda [8,y]	;leemos el siguiente elemento de la diagonal
+	cmpa incognita	;lo comparamos
+	bne otra_diagonal ;si son iguales seguimos, si no nos vamos a la otra diagonal
+	ldb [16,y]	;leemos el ultimo elemento de la diagonal
+	cmpb incognita	;comparamos
+	beq tresenraya_diagonal	;si es el ultimo elemento y son los tres iguales hay tres en diagonal y nos vamos a comprobarlo
+
+otra_diagonal: ;hacemos lo mismo que con la primera diagonal :p
+	lda [4,y] 
+	sta incognita
+	lda [8,y]
+	cmpa incognita
+	bne recorre_fila
+	ldb [12,y]
+	cmpb incognita
+	beq tresenraya_diagonal2
+	
+
+recorre_fila: ;bien, ahora recorreremos las filas
+	tfr y,d ;pasamos el registro y a d para poder jugar con los incrementos y comprobar si y apunta al ultimo elemento del tablero
+	cmpd #final ;comparamos que no hemos vuelto aqui despues de comprobarlo todo
+	beq salte ; de ser asi dejamos de comprobar las filas
+	clra ;limpiamos los registros y empezamos a comprobar
+	clrb
+	lda [,y++] ;cargamos la primera posicion e incrementamos "y" para dejar el puntero en la siguiente casilla
+	sta incognita ;guardamos en incognita para comparar con ese elemento
+	ldb [,y++] ;volvemos a cargar
+	cmpb incognita	;comparamos para ver si la segunda y la tercera son iguales
+	beq seguir_buscando ;si son iguales seguimos buscando
+	lda [,y++] ;cagamos si no la tercera posicion solo para incrementar y apuntando asi al primer elemento de la siguiente fila
+	tfr y,d	;teniendo en cuenta que esta podia ser la ultima fila comprobamos si era esa
+	cmpd #final ;para ello comparamos con el final
+	beq salte ;si son iguales sale de las filas
+	bra recorre_fila ;si no son iguales vuelve a recorrer fila
+
+seguir_buscando:
+	tfr y,d	;comparamos que no venimos del final
+	cmpd #final ;comparamos
+	beq salte ;si es igual nos salimos
+	ldb [,y++] ; si no es el final cargamos
+	cmpb incognita ;comprobamos el ultimo elemento de la fila
+	beq tresenraya ;si son las tres iguales es que hay un tres en raya y nos vamos a compararlo
+	bra recorre_fila ;si no volvemos a recorre fila
+
+salte: ;pues se sale, que preguntas...
+	ldy #posicion ;carga la posicion inicial del vector antes de salir
+	rts
+
+		
+tresenraya_diagonal: ;comprueba que la diagonal no es un tresenraya de espacios vacios
+
+	cmpb #'?
+	beq otra_diagonal ;si son espacios vacios sigue comprobando con la siguiente diagonal
+	bra comprobaciones ;si no son espacios vacios es que hay... si, si... TRES EN RAYA!
+
+tresenraya_diagonal2: ;lo mismo que antes
+	cmpb #'?
+	beq recorre_fila ;si son espacios vacios sigue comprobando con las filas
+	bra comprobaciones ;si no son espacios vacios es que hay... si, si, si, jejejejeje... TRES EN RAYA!
+
+tresenraya: ;esta es una funcion auxiliar para que compruebe que el tres en raya no es de espacios. 
+		;Se utiliza en las filas. Si, es una funcion muy tosca, pero robusta.
+	cmpb #'?
+	beq recorre_fila
+	
+	
+comprobaciones:
+
+	lda asignarturno  ;carga en a la variable asignarturno y compara su valor con 0 o 1 para saber cual era el turno de los dos 
+	cmpa #0		  ;jugadores, y por tanto para saber el jugador que ha ganado la partida
+	beq gana_jugador1   ;si es igual a 0 va a la etiqueta gana_jugador1
+	cmpa #1
+	beq gana_jugador2   ;si es igual a 1 va a la etiqueta gana_jugador2
+
+gana_jugador1:
+	ldx #cadena_victoria_jugador1
+	jsr imprime_cadena		;Muestra por pantalla la cadena_victoria_jugador1
+	lda victorias_jugador1		;carga en a la variable victorias_jugador1	
+	inca				;incrementa a y lo vuelve a guardar en la variable victorias_jugador1
+	sta victorias_jugador1
+	sta victoria			;variable victoria que nos permitira saber si ha ganado algun jugador y por tanto volver al menu
+	jsr mostrar_marcador		;llamamos a la subrutina marcador que nos muestra por pantalla los resultados de cada jugador
+	rts
+	
+
+gana_jugador2:
+	ldx #cadena_victoria_jugador2
+	jsr imprime_cadena		;Muestra por pantalla la cadena_victoria_jugador2
+	lda victorias_jugador2		;carga en a la variable victorias_jugador2
+	inca				;incrementa a y lo vuelve a guardar en la variable victorias_jugador2
+	sta victorias_jugador2
+	sta victoria			;variable victoria que nos permitira saber si ha ganado algun jugador y por tanto volver al menu
+	jsr mostrar_marcador		;llamamos a la subrutina marcador que nos muestra por pantalla los resultados de cada jugador
+	rts
+	
+
+	
+
+
+;Imprimir cadenas:
+imprime_cadena:	;tio, esta funcion es del avellano...
+	pshu a
+
+sgte:	lda ,x+
+	beq ret_imprime_cadena
+	sta pantalla
+	bra sgte
+
+ret_imprime_cadena:
+	pulu a	
+	rts
+
+
+
+
+
+
+;Elegir fichas:
+elegir_ficha:
+
+	;subrutina que permite al jugador 1 elegir la ficha. Al jugador 2 se 
+	;le asigna directamente la ficha que no ha elegido el jugador 1
+	
+	pshu a
+elegir:
+	ldx #cadena_eligeficha		;se muestra por pantalla la cadena_eligeficha. 
+	jsr imprime_cadena
+	ldb teclado		   	;se carga en b desde teclado un valor(x,X,2,o,O,0,1)
+	cmpb #'x		   	;Dicho valor se compara
+	beq elige_fichax	   	;si el valor es x, X o 2 se va a la etiqueta elige_fichax
+	cmpb #'X
+	beq elige_fichax
+	cmpb #'2
+	beq elige_fichax
+	cmpb #'o
+	beq elige_fichao	   	 ;si el valor es o, 0, O o 1 se va a la etiqueta elige_fichao
+	cmpb #'O
+	beq elige_fichao
+	cmpb #'0
+	beq elige_fichao
+	cmpb #'1
+	beq elige_fichao
+	bra elegir
+
+elige_fichao:
+	
+	ldb #'O
+	stb jugador1            	;se guarda en la variable jugador1 el codigo  ascii de la letra O
+	ldx #cadena_jugador1		;se muestra por pantalla la cadena_jugador1 y el valor de b (valor guardado en la variable jugador1) 
+	jsr imprime_cadena
+	stb pantalla
+	ldb #'X
+	stb jugador2			;se guarda en la variable jugador2 el codigo  ascii de la letra X 
+	ldx #cadena_jugador2		;se muestra por pantalla la cadena_jugador2 y el valor de b (valor guardado en la variable jugador2)
+	jsr imprime_cadena
+	stb pantalla 
+	pulu a
+	rts
+
+elige_fichax:
+	ldb #'X
+	stb jugador1			;se guarda en la variable jugador1 el codigo  ascii de la letra X
+	ldx #cadena_jugador1		;se muestra por pantalla la cadena_jugador1 y el valor de b (valor guardado en la variable jugador1)
+	jsr imprime_cadena
+	stb pantalla
+	ldb #'O
+	stb jugador2			;se guarda en la variable jugador2 el codigo  ascii de la letra O
+	ldx #cadena_jugador2		;se muestra por pantalla la cadena_jugador2 y el valor de b (valor guardado en la variable jugador2)
+	jsr imprime_cadena
+	stb pantalla
+	pulu a
+	rts
+
+
+
+
+
