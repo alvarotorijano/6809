@@ -1,0 +1,64 @@
+.module aleatorios
+
+teclado		.equ	0xFF02
+
+;Definimos las subrutinas de este fichero como globales
+		.globl srand
+		.globl rand
+		.globl turno
+		
+
+;CADENAS 
+
+cadena_semilla:
+		.asciz "\n\n\nPulsa cualquier tecla para empezar el juego... "
+
+;VARIABLES GLOBALES
+.globl semilla
+.globl generador_semilla
+.globl asignarturno
+
+
+
+semilla:		.word 0
+generador_semilla:	.byte 3
+
+		.globl imprime_cadena
+;Obtener semilla
+srand:
+	;subrutina que nos pide por tecado el valor que queremos dar a la semilla y se queda con la parte baja de ese valor
+	ldx #cadena_semilla
+	jsr imprime_cadena
+	ldb teclado
+	stb semilla+1
+	rts
+
+
+
+
+;Esta funcion decide el turno
+turno:
+
+	;subrutina que decide de forma aleatoria que jugador tiene el prier turno
+	
+	pshu a
+	jsr rand  ;llamamos a la subrutina rand en la cual se genera un numero aleatorio
+	ldd semilla  ;cargamos en d el valor que tenemos gardado en la variable semilla
+	andb #0b00000001 ;la operacion and solo deja igual el bit 1, el 0 lo desactiva.
+	stb asignarturno  ;guardamos en la vaiable asignaturno el valor de b que es 0 o 1.
+	pulu a
+	rts
+
+
+;Generar numero pseudoaleatorio
+rand:
+	
+	lda semilla+1 ;cargamos en a la parte baja de la semilla que hemos introducido por teclado 
+	ldb generador_semilla ;cargamos en b el generador_semilla cuyo valor es 3
+	mul ;multiplicamos ambos valores
+	addd #41  ;sumamos 41
+	std semilla ;guardamos el resultado de la operacion en la variabe llemilla
+	rts ;volvemos a donde fue llamada a subrutina
+
+
+
