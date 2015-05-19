@@ -1,0 +1,288 @@
+.MODULE tresenrayafinal
+;TRES EN RAYA
+
+		
+
+	;Definimos las constantes
+         			
+fin     	.equ 	0xFF01
+teclado		.equ	0xFF02
+pantalla 	.equ 	0xFF00
+pilaU		.equ	0xE000
+pilaS		.equ	0xF000
+				
+		
+		.globl 	programa
+
+
+;CADENAS GLOBALES
+
+
+.globl logo
+.globl menu
+.globl tablero
+.globl cadena_error
+.globl cadena_eligeficha
+.globl cadena_1jugador
+.globl cadena_2jugadores
+.globl cadena_jugador1
+.globl cadena_jugador2
+.globl cadena_turno_jugador1
+.globl cadena_turno_jugador2
+.globl cadena_instrucciones
+.globl cadena_salir
+.globl cadena_ic
+.globl cadena_fila
+.globl cadena_columna
+.globl cadena_coordenada_ocupada
+.globl cadena_victoria_jugador1
+.globl cadena_victoria_jugador2
+.globl cadena_marcador
+.globl cadena_empate
+.globl cadena_dificultad
+.globl cadena_turno_maquina       							
+
+		
+
+;VARIABLES GLOBALES
+
+.globl jugador1
+.globl jugador2
+.globl columna
+.globl indice
+.globl asignarturno
+.globl incognita 		
+.globl victorias_jugador1
+.globl victorias_jugador2
+.globl victoria		
+.globl tiradas	
+.globl maquina
+.globl posicion
+.globl final
+
+;DECLARACION DE VARIABLES
+
+jugador1: 		.byte 0
+jugador2: 		.byte 0
+columna:		.byte 0
+indice:			.byte 0
+asignarturno:		.byte 0
+incognita: 		.byte 0
+victorias_jugador1:	.byte #'0
+victorias_jugador2:	.byte #'0
+victoria:		.byte 0
+tiradas:		.byte 0
+maquina:		.byte 0
+posicion:		.word 0
+			.word 0
+			.word 0
+			.word 0
+			.word 0
+			.word 0
+			.word 0
+			.word 0
+			.word 0
+final:			.word 0
+			
+	
+;Declaramos las subrutinas necesarias en el fichero
+
+
+.globl srand
+.globl imprime_cadena
+.globl limpia_tablero
+.globl elegir_ficha 
+.globl mostrar_tablero
+.globl turno
+.globl leer_coordenada
+.globl comprueba_tresenraya
+.globl tirada_maquina
+.globl nivel_dificultad
+.globl mostrar_marcador
+
+
+	
+
+
+
+;COMIENZA EL PROGAMA
+programa:
+	;Cargamos la pila de usuario y de sistema
+	ldu #pilaU
+	lds #pilaS
+
+;Generamos el vector de posiciones del tablero
+	ldy #posicion ;cargamos en y la posicion de memoria 0x0080
+	ldd #tablero ;cargamos la cadena tablero
+	addd #20  ;sumamos 20 al registro d
+	std ,y  ;almacnamos la direccion de memoia que se enuentra en el indice y
+	addd #2 ;sumamos 2 al registro d
+	std 2,y ;incrementamos en 2 el indice y almacnamos d en esa posicion
+	addd #2	;sumamos 2 al registro d
+	std 4,y	;incrementamos en 4 el indice y almacnamos d en esa posicion
+	addd #12 ;sumamos 12 al registro d
+	std 6,y	;incrementamos en 6 el indice y almacnamos d en esa posicion
+	addd #2	;sumamos 2 al registro d
+	std 8,y	;incrementamos en 8 el indice y almacnamos d en esa posicion
+	addd #2 ;sumamos 2 al registro d
+	std 10,y ;incrementamos en 10 el indice y almacnamos d en esa posicion
+	addd #12 ;sumamos 12 al registro d
+	std 12,y ;incrementamos en 12 el indice y almacnamos d en esa posicion
+	addd #2 ;sumamos 2 al registro d
+	std 14,y ;incrementamos en 14 el indice y almacnamos d en esa posicion
+	addd #2 ;sumamos 2 al registro d
+	std 16,y ;incrementamos en 16 el indice y almacnamos d en esa posicion
+	
+	;sacamos el titulo por pantalla
+	ldx #logo
+	jsr imprime_cadena
+	
+	;llamamos a la subrutina srand que nos pide el valor de la semilla por pantalla
+	jsr srand
+
+;Este es el menu
+bucle_menu:
+	;llamamos a la subrutina limpia_tablero, para que cuando vuelva a comnzar el juego el tablero quede limpio
+	jsr limpia_tablero
+	
+
+	ldx #menu
+	jsr imprime_cadena
+	lda teclado
+	cmpa #'1
+	lbeq un_jugador
+	cmpa #'2
+	lbeq dos_jugadores
+	cmpa #'3
+	lbeq instrucciones
+	cmpa #'s
+	lbeq instrucciones
+	cmpa #'S
+	lbeq salir
+					
+	ldx #cadena_error		;si no accede a ninguna de las opciones anteriores es porque se ha introducido un valor incorrecto,
+	jsr imprime_cadena		;lo muestra por pantalla y vuelve al bucle_menu
+	lbra bucle_menu
+
+
+
+;Estas son las opciones del menu:
+
+;Dos_jugadores
+dos_jugadores:
+	clra 
+	sta victoria 	;ponemos la variable victorias a 0
+	ldy #posicion 	;cargamos la posicion 0x0080
+	ldx #cadena_2jugadores
+	jsr imprime_cadena  ;sacamos por pantalla la cadena para saber que hemos elegido la opcion dos jugadores
+	jsr elegir_ficha  ;llamamos a la subrutina que nos permite elegir la ficha
+	jsr mostrar_tablero ;llamamos a la subrutina que nos muestra el tablero
+	jsr turno ;llamamos a la subrutina que nos muestra de forma aletoria el jugador que tiene primer turno
+	ldb asignarturno ;cargamos la variable asignaturno y la comparamos con 0.
+	cmpb #0
+	beq turno_jugador1 ;si es igual a 0 entra en la etiqueta  turno_jugador1
+	bne turno_jugador2 ;so es distinto de 0, es 1, entra en la etiqueta turno_jugador2
+
+turno_jugador1:
+	lda #0				;guardamos en la variable asignaturno el valor 0 cada vez que entramos en esta etiqueta 
+	sta asignarturno 		;para comprobar despues cual es el jugador que ha ganado cuando se produce una victoria y para 		                                ;introducir la ficha correcta
+	ldx #cadena_turno_jugador1
+	jsr imprime_cadena  		;sacamos por pantalla la cadena para saber que estamos en el turno del jugador 1
+ 	jsr leer_coordenada 		;llamamos a la subrutina que nos pide las coordenadas por panalla e introduce la ficha 
+	jsr comprueba_tresenraya	;llamamos a la subrutina que nos comprueba si hay tres en raya 
+	ldb victoria			;la variable victoria que nos permite volver al menu si ha ganado alguno de los dos jugadores
+	cmpb #0
+	bne bucle_menu			;si b es distinto de 0  vuelve al menu, quiere decir que ya ha ganado un jugador.
+	lda tiradas			;cargamos en a la variable tiradas
+	inca				;incrementamos a
+	sta tiradas			;volvemos a guardar el valor de a en la variable tiradas
+	cmpa #9				;comparamos a (variable tiradas) con 9
+	lbeq empate			;si es igual a 9 se va a la cadena empate, por lo que no ha ganado ninguno de los jugadores
+	lda maquina
+	cmpa #0				;Comprobamos si tenemos que irnos a la maquina o al jugador 
+	lbne turno_maquina
+	jmp turno_jugador2		;Si no ha ganado ningun jugador y no hay empate salta a turno_jugador2
+	
+turno_jugador2:
+	lda #1				;guardamos en la variable asignaturno el valor 1 cada vez que entramos en esta etiqueta
+	sta asignarturno		;para saber el turno en el que estamos
+	ldx #cadena_turno_jugador2
+	jsr imprime_cadena		;sacamos por pantalla la cadena turno del jugador 2	
+	jsr leer_coordenada		;leemos las coordenadas
+	jsr comprueba_tresenraya	;comprobamos si hay tres en raya
+	ldb victoria			;fcomprobamos si se ha encontrado tresenraya
+	cmpb #0
+	lbne bucle_menu			;si b es distinto de 0  vuelve al menu, quiere decir que ya ha ganado un jugador.
+	lda tiradas			;cargamos en a la variable tiradas
+	inca				;incrementamos a
+	sta tiradas			;volvemos a guardar el valor de a en la variable tiradas
+	cmpa #9				;comparamos a (variable tiradas) con 9
+	lbeq empate			;si es igual a 9 se va a la cadena empate, por lo que no ha ganado ninguno de los jugadores
+	jmp turno_jugador1		;Si no ha ganado ningun jugador y no hay empate salta a turno_jugador1
+
+empate:
+	ldx #cadena_empate
+	jsr imprime_cadena		;muestra por pantalla la cadena_empate
+	jsr mostrar_marcador
+	jmp bucle_menu
+
+turno_maquina:
+	lda #1				;guardamos en la variable asignaturno el valor 1 cada vez que entramos en esta etiqueta
+	sta asignarturno		;para saber en el turno de que jugador te encuentras
+	ldx #cadena_turno_maquina
+	jsr imprime_cadena		;sacamos por pantalla la cadena para saber que estamos en el turno de la maquina
+	jsr tirada_maquina
+	jsr mostrar_tablero		;llamamos a la subrutina que nos muestra el tablero con la ficha que ha insertado la maquina
+	jsr comprueba_tresenraya	;comprueba si hay tres en raya
+	ldb victoria			;la variable victoria que nos permite volver al menu si ha ganado alguno de los dos jugadores
+	cmpb #0
+	lbne bucle_menu			;si b es distinto de 0  vuelve al menu, quiere decir que ya ha ganado un jugador.
+	lda tiradas			;cargamos en a la variable tiradas
+	inca				;incrementamos a
+	sta tiradas			;volvemos a guardar el valor de a en la variable tiradas
+	cmpa #9				;comparamos a (variable tiradas) con 9
+	lbeq empate			;si es igual a 9 se va a la cadena empate, por lo que no ha ganado ninguno de los jugadores
+	jmp turno_jugador1		;Si no ha ganado ningun jugador y no hay empate salta a turno_jugador1
+
+
+;Un jugador
+un_jugador:
+	clra
+	sta victoria    ;ponemos la variable victorias a 0
+	ldy #posicion	;cargamos la posicion 0x0080
+	ldx #cadena_1jugador	
+	jsr imprime_cadena	;mostramos por pantalla la cadena_1jugador
+	jsr elegir_ficha	;llamamos a la subrutina que nos permite elegir la ficha
+	jsr nivel_dificultad	;llamamos a la subrutina que nos permite elegir el nivel de dificultad del juego contra la maquina
+	jsr mostrar_tablero	;llamamos a la subrutina que nos muestra el tablero
+	jsr turno		;llamamos a la subrutina que nos muestra de forma aletoria el jugador que tiene primer turno
+	ldb asignarturno	;cargamos la variable asignaturno y la comparamos con 0.
+	cmpb #0
+	lbeq turno_jugador1	;si es igual a 0 entra en la etiqueta  turno_jugador1
+	lbne turno_maquina 	;si es distinto de 0 (es 1) entra en la etiqueta  turno_maquina
+	
+
+;Instrucciones
+instrucciones:
+	ldx #cadena_instrucciones      ;muestra por pantalla la cadena_instrucciones 
+	jsr imprime_cadena
+	lda teclado
+	jmp bucle_menu
+	
+;Salir
+salir:
+	ldx #cadena_salir		;muestra por pantalla la cadena_salir
+	jsr imprime_cadena
+	clra
+	sta fin
+
+
+
+
+
+	
+
+.area FIJA (ABS)
+.org 0xFFFE
+.word programa
+
