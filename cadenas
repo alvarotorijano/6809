@@ -1,0 +1,146 @@
+.module cadenas
+
+
+
+;Declaramos las cadenas como globales para que puedan ser usadas por otros ficheros
+
+.globl logo
+.globl menu
+.globl tablero
+.globl cadena_error
+.globl cadena_eligeficha
+.globl cadena_1jugador
+.globl cadena_2jugadores
+.globl cadena_jugador1
+.globl cadena_jugador2
+.globl cadena_turno_jugador1
+.globl cadena_turno_jugador2
+.globl cadena_instrucciones
+.globl cadena_salir
+.globl cadena_ic
+.globl cadena_fila
+.globl cadena_columna
+.globl cadena_coordenada_ocupada
+.globl cadena_victoria_jugador1
+.globl cadena_victoria_jugador2
+.globl cadena_marcador
+.globl cadena_empate
+.globl cadena_dificultad
+.globl cadena_turno_maquina
+
+;TODASLAS CADENAS DEL PROGRAMA
+logo:
+.ascii" ______________________________________________________________________________       \n"
+.ascii"/\__  _________________________________________________________________________\      \n"
+.ascii"\/_/\ \________________________________________________________________________/      \n"
+.ascii"   \ \ \  _ __    __    ____         __    ___       _ __    __     __  __     __     \n"
+.ascii"    \ \ \/\`'__\/'__`\ /',__\      /'__`\/' _ `\    /\`'__\/'__`\  /\ \/\ \  /'__`\   \n"
+.ascii"     \ \ \ \ \//\  __//\__, `\    /\  __//\ \/\ \   \ \ \//\ \L\.\_\ \ \_\ \/\ \L\.\_ \n"
+.ascii"      \ \_\ \_\\ \____\/\____/    \ \____\ \_\ \_\   \ \_\\ \__/.\_\\/`____ \ \__/.\_\\n"
+.ascii"       \/_/\/_/ \/____/\/___/      \/____/\/_/\/_/    \/_/ \/__/\/_/ `/___/> \/__/\/_/\n"
+.ascii"                                                                        /\___/        \n"
+.asciz"          THE ONLY WINING MOVE IS NOT TO PLAY...                        \/__/         \n"
+     
+
+menu: 
+	.ascii 	"\n\nOXOXOXOXOXOXOXOXOXO\n"
+	.ascii	"X      MENU       X\n"
+	.ascii	"OXOXOXOXOXOXOXOXOXO\n\n"
+	.ascii 	"1)UN JUGADOR\n"
+	.ascii 	"2)DOS JUGADORES\n"
+	.ascii 	"3)INSTRUCCIONES\n"  
+	.asciz	 "s)SALIR\n"
+				
+tablero:	
+		.ascii    "\n\n  1 2 3\n";10
+		.ascii	  "  -----\n";8
+		.ascii    "1 ?|?|?\n";8 primera posicion: la 21
+		.ascii	  "  -----\n";8
+		.ascii    "2 ?|?|?\n";8
+		.ascii	  "  -----\n";8
+		.asciz    "3 ?|?|?\n";8	
+cadena_error:
+		.asciz "\nLa opcion que has elegido no es valida"
+
+cadena_eligeficha:
+		.asciz"\nElige la ficha que utilizara el jugador 1 (O/X): "
+
+cadena_1jugador:
+		.asciz "\nHas elegido la opcion un jugador\n"
+
+cadena_2jugadores:
+		.asciz "\nHas elegido dos jugadores\n"
+
+cadena_jugador1:
+		.asciz "\nJugador1: "
+
+cadena_jugador2:
+		.asciz "\nJugador2 / Maquina: "
+
+cadena_turno_jugador1:
+		.asciz "\nEs tu turno jugador 1\n"
+
+cadena_turno_jugador2:
+		.asciz "\nEs tu turno jugador 2\n"
+
+cadena_instrucciones:
+		.ascii "\n  TRES EN RAYA  \n"
+		.ascii "\n El tres en raya es juego que consiste en alinear tres fichas iguales,"
+		.ascii "\n ya sea en filas, columnas o diagonales."
+		.ascii "\n\n Para ello los dos jugadores se alternaran el turno colocando una"
+		.ascii "\n ficha cada vez."
+		.ascii "\n El turno inicial se sorteara entre los jugadores"
+		.ascii "\n Si ninguno ha sido capaz de colocar tres fichas en raya habra un empate"
+		.ascii "\n\n Los jugadores podran escojer que ficha quieren utilizar entre:"
+		.ascii "\n Una cruz (x), que se elegira con una <x>, <X>, o un <2>"
+		.ascii "\n Un circulo (o), que se elegiga con <o>, <O>, <0>, o un <1>"
+		.ascii "\n\n Este guego tiene dos modos de funcionamiento:"
+		.ascii "\n Dos jugadores, donde dos personas jugaran uno contra otro"
+		.ascii "\n Un jugador, donde el jugador 1 sera una persona, y el jugador 2 sera la"
+		.ascii "\n maquina, que a su vez tendra dos modos de funcionamiento:"
+		.ascii "\n El nivel estupido, que hace movimientos sin seguir ninguna estrategia."
+		.ascii "\n El nivel inteligente, donde la maquina intentara ganar siempre, o"
+		.ascii "\n evitar la derrota, pero jamas perdera..."
+		.asciz "\n\n\n\n  Pulsa una tecla para volver al menu..."
+
+
+cadena_salir:
+		.asciz "\nHas elegido abandonar el juego.\n Hasta pronto!\n"
+
+cadena_ic:
+		.asciz "\nIntroduce las coordenadas de la proxima jugada:"
+
+cadena_fila:
+		.asciz "\nFila: "
+
+cadena_columna:
+		.asciz "\nColumna: "
+
+cadena_coordenada_ocupada:
+		.asciz "\nCoordenada ocupada.\n"
+
+cadena_victoria_jugador2:
+		.asciz "\nHa ganado el jugador 2 \ Maquina !\n"
+
+cadena_victoria_jugador1:
+		.asciz "\nHa ganado el jugador 1!\n"
+
+cadena_marcador:
+		.ascii "\n~~~~~~~~~~~~~~"
+		.ascii "\n---MARCADOR---"
+		.asciz "\n~~~~~~~~~~~~~~"
+
+cadena_empate:
+		.asciz"\n EMPATE \n"
+
+cadena_dificultad:
+		.ascii "\nElige la dificultad de la maquina:\n"
+		.ascii "\ne) Estupido"
+		.asciz "\ni) Inteligente\n"
+
+cadena_turno_maquina:
+		.asciz "\nTurno de la maquina...\n"
+
+
+
+
