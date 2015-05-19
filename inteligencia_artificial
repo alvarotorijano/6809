@@ -1,0 +1,437 @@
+.module inteligencia_artificial
+
+teclado		.equ	0xFF02
+pantalla 	.equ 	0xFF00
+;posicion	.equ 	0x0080
+
+
+;Definimos las subrutinas de este fichero como globales
+.globl tirada_maquina
+.globl nivel_dificultad
+
+
+;.globl sumar
+
+;CADENAS GLOBALES
+.globl cadena_error
+.globl cadena_dificultad
+       					
+
+
+;VARIABLES GLOBALES
+
+.globl posicion
+.globl final
+.globl jugador1
+.globl jugador2
+.globl columna
+.globl semilla
+.globl generador_semilla
+.globl indice
+.globl asignarturno
+.globl incognita 		
+.globl victorias_jugador1
+.globl victorias_jugador2
+.globl victoria		
+.globl tiradas	
+.globl maquina
+
+
+
+;Declaramos las subrutinas necesarias en el fichero
+.globl rand
+.globl imprime_cadena
+
+
+;Elegir la dificultad de la maquina
+nivel_dificultad:
+	pshu a
+lee_dificultad:
+	ldx #cadena_dificultad ;cargamos la cadena para que el usuario elija la dificultad
+	jsr imprime_cadena	;ejem...
+	lda teclado	;leemos de teclado la opcion que ha elejido
+	cmpa #'e	;si es la e minuscula la guarda
+	beq guarda_dificultad	;guardado de la dificultad
+	cmpa #'E
+	beq guarda_dificultad	;tambien le dejamos que elija esa opcion con la E mayuscula
+	cmpa #'i	;el nivel inteligente se elige pulsando la i minuscula
+	beq guarda_dificultad
+	cmpa #'I ;o la mayuscula
+	beq guarda_dificultad ;si son alguna de las opciones que contemplamos la guarda
+	ldx #cadena_error ;si no es asi vuelve a pedir la dificultad
+	jsr imprime_cadena ;la cadena...
+	bra lee_dificultad ;repetimos el bucle
+
+guarda_dificultad: ;esta funcion almacena la letra elegida en la variable maquina para despues poder hacer un switch en la
+; inteligencia_artificial
+	sta maquina
+	pulu a
+	rts
+
+
+;Tirada de la maquina:
+tirada_maquina:	
+	ldy #posicion ;antes de nada cargamos en y el puntero del vector
+	lda maquina ;cargamos la variable en la que tenemos la dificultad elegida
+	cmpa #'e ;y en funcion de si es una e o una i se va al nivel estupido o al inteligente
+	lbeq nivel_estupido
+	cmpa #'E
+	lbeq nivel_estupido
+
+nivel_inteligente:; EMPIEZA LA FIESTA
+	lda tiradas ;en funcion del numero de tiradas hace una cosa u otra, variable que tambien usamos para saber cuando hay empate
+	cmpa #0
+	lbeq primeros_movimientos
+	cmpa #1
+	lbeq primer_movimiento
+	cmpa #2
+	lbeq primeros_movimientos
+	lda jugador2
+	sta incognita
+	lbra inteligencia_artificial
+
+primer_movimiento: ;El primer movimiento seria aquel en el que solo hay una ficha y es del humano
+	ldb #8	;asique nosotros intentamos guardar en el centro, y si el humano la ha puesto ahi entoces la ponemos en una 
+		;esquina cualquiera
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	jsr rand ;generamos un numero aleatorio que nos dira en que esquina guardamos, esto ademas hace, 
+		 ;mas impredecible la serie aleatoria
+	ldb semilla
+	andb #0b00000011 ;esto nos devuelve un numero de 0 a 3
+	cmpb #0
+	lbeq esquina1
+	cmpb #1
+	lbeq esquina2
+	cmpb #2
+	lbeq esquina3
+	cmpb #3
+	lbeq esquina4
+
+esquina1: ;Cuatro esquinitas tiene mi cama...
+	ldb #0
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra primer_movimiento
+
+esquina2:
+	ldb #4
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra primer_movimiento
+
+esquina3:
+	ldb #12
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra primer_movimiento
+
+esquina4:
+	ldb #16
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra primer_movimiento
+	
+primeros_movimientos: ;Bien, esta es la gracia de la I.A.:
+;Estudiando el tres en raya hemos llegado a la conclusionde que si el primer movimiento es en el centro, 
+;el segundo en una casilla en la mitad de una fila o una columna y el tercero en una esquina no contenida 
+;en la fila o columna del segundo movimiento, el juego 
+;solo puede terminar en victoria o empate. Esto garantiza que nuestra I.A. nunca perdera. (H)(H)(H)
+
+;Para esto lo que hacemos es que si el segundo movimiento es una ficha en una casilla intermedia, 
+;nosotros lo colocaremos en una fila o columna opuesta. Si por el contrario el la coloca en una 
+;esquina, nosotros lo haremos en una intermedia, puesto que asi tendremos dos en raya, y la
+; tercera libre, aumentando nuestras posibilidades. Para ahorrar codigo hemos indexado estas jugadas. 
+;la tirada en el centro esta indexada para poder reutilizar la etiqueta cuando no se han producido tiradas
+centro:
+	ldb #8
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+primera:	
+	lda [,y]
+	cmpa jugador1
+	lbne segunda
+	ldb #14
+	lbra guardar
+
+segunda:
+	lda [2,y]
+	cmpa jugador1
+	lbne tercera
+	ldb #12
+	lbra guardar
+
+tercera:
+	lda [4,y]
+	cmpa jugador1
+	lbne cuarta
+	ldb #6
+	lbra guardar
+
+cuarta:
+	lda [6,y]
+	cmpa jugador1
+	lbne quinta
+	ldb #16
+	lbra guardar
+
+quinta:
+	lda [10,y]
+	cmpa jugador1
+	lbne sexta
+	ldb #0
+	lbra guardar
+
+sexta:
+	lda [12,y]
+	cmpa jugador1
+	lbne septima
+	ldb #10
+	lbra guardar
+
+septima:
+	lda [14,y]
+	cmpa jugador1
+	lbne octava
+	ldb #4
+	lbra guardar
+
+octava:
+	lda [16,y]
+	cmpa jugador1
+	lbne inteligencia_artificial
+	ldb #2
+	lbra guardar
+
+inteligencia_artificial: ;a partir de aqui el programa busca 2 suyas para poner una tercera, y si no es posibe,
+			;busca dos del enemigo para no dejarle ganar
+	clra
+	sta columna
+
+diagonalI: ;primero buscamos 2 en la primera diagonal
+	clra 	
+	sta columna ;columna es una variable que hemos reutilizado inteligentemente para 
+		    ;contar cuantos elementos iguales hemos encontrado
+	lda [0,y]
+	cmpa incognita
+	lbne seguir1
+	jsr sumar
+seguir1:
+	lda [8,y]
+	cmpa incognita
+	lbne seguir2
+	jsr sumar
+seguir2:
+	lda [16,y]
+	cmpa incognita
+	lbne seguir3
+	jsr sumar
+seguir3:
+	lda columna
+	cmpa #2
+	lbeq guardar_diagonalI ;si no las encontramos nos vamos a la segunda diagonal
+	clra
+	sta columna
+
+diagonalD:
+	clra 	
+	sta columna
+	lda [4,y]
+	cmpa incognita
+	lbne seguir4
+	jsr sumar
+seguir4:
+	lda [8,y]
+	cmpa incognita
+	lbne seguir5
+	jsr sumar
+seguir5:
+	lda [12,y]
+	cmpa incognita
+	lbne seguir6
+	jsr sumar
+seguir6:
+	lda columna
+	cmpa #2
+	lbeq guardar_diagonalD
+	clra
+	sta columna
+	clrb
+
+buscar_enfilas:
+	clrb
+enfilas:
+	lda [b,y]
+	cmpa incognita
+	bne seguir_fila
+	jsr sumar
+seguir_fila:
+	incb incb
+	lda [b,y]
+	cmpa incognita
+	bne seguir_fila2
+	jsr sumar
+seguir_fila2:
+	incb incb
+	lda [b,y]
+	cmpa incognita
+	bne siguiente_fila
+	jsr sumar
+siguiente_fila:
+	lda columna
+	cmpa #2
+	beq guardar_fila
+	clra	
+	sta columna
+	cmpb #16
+	bhs buscar_encolumnas
+	incb incb
+	bra enfilas
+
+buscar_encolumnas: ;busca en las columnas dos fichas iguales
+	clrb
+encolumnas:
+	clra 
+	sta columna
+	lda [b,y]
+	cmpa incognita
+	bne seguir_columna
+	jsr sumar
+seguir_columna:
+	addb #6
+	lda [b,y]
+	cmpa incognita
+	bne seguir_columna2
+	jsr sumar
+seguir_columna2:
+	addb #6
+	lda [b,y]
+	cmpa incognita
+	bne seguir_columna3
+	jsr sumar
+seguir_columna3:
+	lda columna
+	cmpa #2
+	beq guardar_columna
+	cmpb #16
+	beq ir_a_no_perder
+	subb #10
+	bra encolumnas
+
+ir_a_no_perder:
+	lda incognita ; comprueba que ficha ha estado buscando
+	cmpa jugador1	;si era la del jugador uno, quiere decir que no puede ganar, 
+			;ni dejar ganar asique hace un movimiento aleatorio
+	lbeq nivel_estupido
+	lda jugador1 ;si ha estado buscando su ficha, entonces carga la del jugador uno para no dejarle ganar
+	sta incognita
+	lbra inteligencia_artificial
+
+guardar_columna: ;estas funciones intentan guardar solo si la columna tiene posiciones libres
+	subb #12
+guardar_encolumna:
+	clra
+	sta indice
+nuevo_guardarencolumna:
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lda indice
+	inca
+	sta indice
+	cmpa #3
+	beq salirdeaqui
+	addb #6
+	bra nuevo_guardarencolumna
+salirdeaqui:
+	subb #10
+	lbra encolumnas
+	
+guardar_fila:
+	subb #4  ;se resta 4 para q nos de el valor inicial de la fila
+	clra
+	sta indice
+nuevo_guardarenfila:
+	lda indice
+	inca
+	sta indice
+	lda [b,y]
+	cmpa #'?
+	beq guardar
+	lda indice
+	cmpa #3
+	lbeq enfilas
+	incb incb
+	bra nuevo_guardarenfila	
+	
+guardar_diagonalD:
+	ldb #4
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	ldb #8
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	ldb #12
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra buscar_enfilas
+
+guardar_diagonalI:
+	ldb #0
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	ldb #8
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	ldb #16
+	lda [b,y]
+	cmpa #'?
+	lbeq guardar
+	lbra diagonalD
+
+sumar:
+	pshu a
+	lda columna
+	inca
+	sta columna
+	pulu a
+	rts
+
+nivel_estupido: ;el nivel estupido genera un numero par aleatorio de 0 a 16 e intenta guardar en esa posicion, 
+		;si no intenta guardar en la siguiente y asi sucesivamente dando la 
+		;vuelta al tablero hasta que puede guardar.
+	jsr rand
+	ldb semilla+1
+	andb #0b00001111
+	incb
+	andb #0b00011110
+	
+intentar_estupido:
+	cmpb #18
+	bhs reset_estupido
+	lda [b,y]
+	cmpa #'?
+	beq guardar
+	addb #2
+	bra intentar_estupido
+
+reset_estupido:
+	subb #18
+	bra intentar_estupido
+
+guardar:
+	lda jugador2
+	sta [b,y]
+	rts
+
